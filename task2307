@@ -1,0 +1,176 @@
+public class XMLMaker {
+
+    FileInfo fileInfo = new FileInfo();
+    /**
+     *
+     *
+     * */
+
+    private static Node getXMLLine(Document doc, String fileType, String name, String date, String size) {
+        Element info = doc.createElement(fileType);
+        // set attributes
+        info.setAttribute("name", name);
+        info.setAttribute("created", date);
+        info.setAttribute("size", size);
+        // создаем элемент name
+    //    info.appendChild(getLanguageElements(doc, info, "name", name));
+        // создаем элемент age
+      //  info.appendChild(getLanguageElements(doc, info, "age", age));
+     if (fileType.equals("dir"))
+         info.appendChild(getDirectoryElements(doc,info,"file","value"));
+        return info;
+    }
+
+    private static Node getDirectoryElements(Document doc, Element element, String name, String value) {
+        Element node = doc.createElement(name);
+        node.appendChild(doc.createTextNode(value));
+        return node;
+    }
+
+
+    void writeToXML(SortedMap<File,SortedMap> structureOfDir) throws ParserConfigurationException, IOException {
+
+        DocumentBuilderFactory dbf = DocumentBuilderFactory.newInstance();
+        DocumentBuilder db  = dbf.newDocumentBuilder();
+        Document document = db.newDocument();
+        //root
+        Element dataRoot = document.createElement("data");
+
+        proceedData(document, dataRoot, structureOfDir);
+//                 dataRoot.appendChild(createXMLLine(document, f));//new File("D:\\learning\\MyProject\\Jar\\18-1832\\")));
+        document.appendChild(dataRoot);
+
+        OutputFormat format = new OutputFormat(document);
+        format.setIndenting(true);
+
+        XMLSerializer serializer = new XMLSerializer(new FileOutputStream(new File("xml-info.xml")),format);
+        serializer.serialize(document);
+    }
+
+    private void proceedData(Document document, Element dataRoot, SortedMap<File,SortedMap> structureOfDir) throws IOException {
+
+        for (SortedMap.Entry<File,SortedMap> pair: structureOfDir.entrySet()){
+            File f = pair.getKey();
+            SortedMap directoryFileList = pair.getValue();
+            if (directoryFileList!=null) {
+                Element dir = document.createElement("dir");
+                proceedData(document,dataRoot,directoryFileList);
+                dir.appendChild(createXMLLine(document, f));
+
+                dataRoot.appendChild(createXMLLine(document, f));
+            }
+            else dataRoot.appendChild(createXMLLine(document, f));
+        }
+    }
+
+    private Node createXMLLine(Document doc, File file) throws IOException {
+        Element info;
+        String fileType;
+        if (file.isDirectory()) {
+            fileType = "dir";
+            info = doc.createElement(fileType);
+            info.setAttribute("name", file.getName());
+            info.setAttribute("created", fileInfo.getFileDate(file));
+            info.setAttribute("size", fileInfo.getSizeInKb(file));
+            File[] listOfFiles = file.listFiles();
+              for(File f: listOfFiles)
+                      createXMLLine(doc,f);
+            //doc.appendChild(info);
+        }
+        else {
+            fileType = "file";
+            info = doc.createElement(fileType);
+            // set attributes
+            info.setAttribute("name", file.getName());
+            info.setAttribute("created", fileInfo.getFileDate(file));
+            info.setAttribute("size", fileInfo.getSizeInKb(file));
+            //info.appendChild(doc.createTextNode(fileType));
+        }
+        return info;
+    }
+
+}
+******************************************
+
+public class FileSystemAnalyzer {
+
+      String padding = "";
+
+      SortedMap<File,SortedMap> getInfoFromDir(File directoryItem){
+
+        SortedMap<File,SortedMap> list = new TreeMap<File,SortedMap>();
+        File[] listOfFiles = directoryItem.listFiles();
+        for (File analyzedItem: listOfFiles){
+            if (analyzedItem.isDirectory()) {
+                list.put(analyzedItem, getInfoFromDir(analyzedItem));
+            }
+            if (analyzedItem.isFile()) {
+                 list.put(analyzedItem,null);
+            }
+        }
+
+        return list;
+    }
+
+    void printHashMap(SortedMap<File,SortedMap> hashMap){
+
+        for (SortedMap.Entry<File,SortedMap> pair: hashMap.entrySet()){
+            File f = pair.getKey();
+            if (f.isDirectory()) {//(f.isFile())
+                System.out.println(padding+ "dir: " + f.getName());
+                padding= padding+"  ";
+                printHashMap(pair.getValue());
+            }
+            else {
+                System.out.println(padding+ "file: " + f.getName());
+            }
+        }
+        int n = padding.length();
+        if (n>2)
+          padding=padding.substring(0,padding.length()-2);
+    }
+*************************************************************
+public class FileInfo {
+
+
+    String getSizeInKb(File file) {
+        return String.valueOf(Math.round(file.length()/1024));
+    }
+
+    String getFileDate(File file) throws IOException {
+        BasicFileAttributes attributes  = Files.readAttributes(file.toPath(), BasicFileAttributes.class);
+        Date creationDate = new Date(attributes.creationTime().to(TimeUnit.MILLISECONDS));
+        SimpleDateFormat simpleDateFormat = new SimpleDateFormat("dd.MM.yyyy");
+        return simpleDateFormat.format(creationDate);
+    }
+
+
+}
+********************************
+public class Main {
+
+
+    public static void main(String[] args) throws IOException {
+
+        File folder = new File(".");//("D:\\courses\\handouts\\");
+
+        /**
+         * Gathers info about files in the current directory
+         * */
+        FileSystemAnalyzer fileSystemAnalyzer = new FileSystemAnalyzer();
+        SortedMap<File,SortedMap> structureOfDir = fileSystemAnalyzer.getInfoFromDir(folder);
+      //  fileSystemAnalyzer.printHashMap(structureOfDir);
+
+        /**
+         * Generates xml data
+         * And writes it to a file xml-info.xml
+         * */
+         XMLMaker xmlMaker = new XMLMaker();
+        try {
+            xmlMaker.writeToXML(structureOfDir);
+        } catch (ParserConfigurationException e) {
+            System.out.println("Error in writeToXML method");
+        }
+ 
+    }
+}
