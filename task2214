@@ -1,0 +1,66 @@
+package task2214;
+
+import java.math.BigInteger;
+import java.util.Arrays;
+
+
+/**
+ * Program checks that entered parameter is number with sorted characters sequence
+ */
+public class SortedSequenceChecker {
+
+    boolean isSorted(String number){
+
+        char[] originalArray = number.toCharArray();
+        char[] sortedArray = Arrays.copyOf(originalArray, originalArray.length);
+        Arrays.sort(sortedArray);
+
+        return Arrays.equals(originalArray, sortedArray);
+    }
+
+    /**
+     * Check entered parameter
+     * Return true if parameter is BigInteger number
+     * */
+    public boolean argsChecker(String[] args){
+
+        if (args.length==0){
+            System.out.println("You haven't entered any parameter.");
+            showUsage();
+            return false;
+        }
+        else if (!isBigInteger(args[0])){
+            System.out.println("Unfortunately, entered parameter isn't number.");
+            showUsage();
+            return false;
+        }
+        else return true;
+    }
+
+    public void showUsage(){
+        System.out.println("Usage: one number should be entered while starting program.");
+        System.out.println("For example: SortedSequenceChecker 112355678");
+    }
+
+    /**
+     * Check that parameter is number
+     * */
+    private boolean isBigInteger(String n){
+
+        try{
+            new BigInteger(n);
+            return true;
+        } catch (NumberFormatException e) {return false;}
+    }
+
+    public static void main(String[] args){
+
+        SortedSequenceChecker sortedSequenceChecker = new SortedSequenceChecker();
+        if (sortedSequenceChecker.argsChecker(args)) {
+            if (sortedSequenceChecker.isSorted(args[0]))
+                System.out.println("Characters of number " + args[0] + " are in sorted sequence");
+            else System.out.println("Characters of number " + args[0] + " are not in sorted sequence");
+        }
+
+    }
+}
